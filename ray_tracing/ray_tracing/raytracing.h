@@ -8,6 +8,11 @@
 #include <list>
 #include <algorithm>
 
+#ifndef M_PI
+  // For some reason, MSVC doesn't define this when <cmath> is included
+  #define M_PI 3.14159265358979
+#endif
+
 namespace RAYTRACING
 {
 
@@ -385,6 +390,47 @@ public:
 	
 	// Find all lights in the scene starting with this shape
 	virtual void findLights(std::list<Shape*>& outLightList) { }
+};
+
+class ShapeSet : public Shape
+{
+public:
+  virtual ~ShapeSet() { }
+    
+  virtual bool intersect(Intersection& intersection)
+  {
+    bool intersectedAny = false;
+    for (std::list<Shape*>::iterator iter = m_shapes.begin();
+        iter != m_shapes.end();
+        ++iter)
+    {
+      Shape *pShape = *iter;
+      bool intersected = pShape->intersect(intersection);
+      if (intersected)
+      {
+        intersectedAny = true;
+      }
+    }
+    return intersectedAny;
+  }
+    
+  virtual void findLights(std::list<Shape*>& outLightList)
+  {
+    for (std::list<Shape*>::iterator iter = m_shapes.begin();
+        iter != m_shapes.end();
+        ++iter)
+    {
+      Shape *pShape = *iter;
+      pShape->findLights(outLightList);
+    }
+  }
+    
+  void addShape(Shape *pShape) { m_shapes.push_back(pShape); }
+    
+  void clearShapes() { m_shapes.clear(); }
+    
+protected:
+  std::list<Shape*> m_shapes;
 };
 
 class Light : public Shape
