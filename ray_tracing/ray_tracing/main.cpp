@@ -70,7 +70,6 @@ int main(int argc, char **argv)
   clock_t begin, end;
   
   // time begin
-  begin = clock();
 
   // The 'scene'
   ShapeSet masterSet;
@@ -79,9 +78,9 @@ int main(int argc, char **argv)
   Plane plane(Point(0.0f, -2.0f, 0.0f),
               Vector(0.0f, 1.0f, 0.0f),
               Color(1.0f, 1.0f, 1.0f),
-              true);
+              false);
   masterSet.addShape(&plane);
-   
+  
   // Add an area light
   RectangleLight areaLight(Point(2.5f, 2.0f, -2.5f),
                            Vector(5.0f, 0.0f, 0.0f),
@@ -89,7 +88,7 @@ int main(int argc, char **argv)
                            Color(1.0f, 0.5f, 1.0f),
                            3.0f);
   masterSet.addShape(&areaLight);
-	/*
+  
   // Add another area light below it, darker, that will make a shadow too.
   RectangleLight smallAreaLight(Point(-2.0f, -1.0f, -2.0f),
                                 Vector(4.0f, 0.0f, 0.0f),
@@ -97,7 +96,7 @@ int main(int argc, char **argv)
                                 Color(1.0f, 1.0f, 0.5f),
                                 0.75f);
   masterSet.addShape(&smallAreaLight);
-  */
+  
   // Get light list from the scene
   std::list<Shape*> lights;
   masterSet.findLights(lights);
@@ -105,24 +104,25 @@ int main(int argc, char **argv)
   // Random number generator (for random pixel positions, light positions, etc)
   Rng rng;
     
-    
+  begin = clock();
   // Set up the output file (TODO: the filename should probably be a commandline parameter)
   std::ostringstream headerStream;
   headerStream << "P6\n";
   headerStream << kWidth << ' ' << kHeight << '\n';
   headerStream << "255\n";
   std::ofstream fileStream("out.ppm", std::ios::out | std::ios::binary);
-    
+  int abc = 0;
   fileStream << headerStream.str();
-    
+  unsigned int* a = new unsigned[kHeight*kWidth];
   // For each row...
   for (size_t y = 0; y < kHeight; ++y)
   {
     // For each pixel across the row...
     for (size_t x = 0; x < kWidth; ++x)
     {
+
+	  Color pixelColor;
       // For each sample in the pixel...
-      Color pixelColor(0.0f, 0.0f, 0.0f);
       for (size_t si = 0; si < kNumPixelSamples; ++si)
       {
         // Calculate a random position within the pixel to hide aliasing.
@@ -151,17 +151,19 @@ int main(int argc, char **argv)
           {
             // Ask the light for a random position/normal we can use
             // for lighting
+			
             Point lightPoint;
             Vector lightNormal;
             Light *pLightShape = dynamic_cast<Light*>(*iter);
-            pLightShape->sampleSurface(rng.nextFloat(),
+			pLightShape->sampleSurface(rng.nextFloat(),
                                       rng.nextFloat(),
                                       position,
                                       lightPoint,
                                       lightNormal);
-                        
+                   
             // Fire a shadow ray to make sure we can actually see
             // that light position
+			
             Vector toLight = lightPoint - position;
             float lightDistance = toLight.normalize();
             Ray shadowRay(position, toLight, lightDistance);
@@ -177,29 +179,33 @@ int main(int argc, char **argv)
               pixelColor += intersection.m_color * 
                       pLightShape->emitted() * lightAttenuation;
             }
+			
           }
         }
       }
-      // Divide by the number of pixel samples (a box filter, essentially)
-      pixelColor /= kNumPixelSamples;
-            
-      // We're writing LDR pixel values, so clamp to 0..1 range first
-      pixelColor.clamp();
-      // Get 24-bit pixel sample and write it out
-      unsigned char r, g, b;
-      r = static_cast<unsigned char>(pixelColor.m_r * 255.0f);
-      g = static_cast<unsigned char>(pixelColor.m_g * 255.0f);
-      b = static_cast<unsigned char>(pixelColor.m_b * 255.0f);
-      fileStream << r << g << b;
+	  // Divide by the number of pixel samples (a box filter, essentially)
+	  pixelColor /= kNumPixelSamples;
+
+	  // We're writing LDR pixel values, so clamp to 0..1 range first
+	  pixelColor.clamp();
+	  // Get 24-bit pixel sample and write it out
+	  unsigned char r, g, b;
+	  r = static_cast<unsigned char>(pixelColor.m_r * 255.0f);
+	  g = static_cast<unsigned char>(pixelColor.m_g * 255.0f);
+	  b = static_cast<unsigned char>(pixelColor.m_b * 255.0f);
+
+	  fileStream << r << g << b;
     }
   }
-    
+
+		  
+
   // Tidy up (probably unnecessary)
   fileStream.flush();
   fileStream.close();
   
   end = clock();
-  std::cout << "elapsed time : " << (double)(end - begin)/CLOCKS_PER_SEC << std::endl;
+  printf("elapsed time : %lfs\n", (double)(end - begin) / CLOCKS_PER_SEC);
 
   return 0;
 }

@@ -161,8 +161,7 @@ public :
   Vector(const Vector& v)           : m_x(v.m_x), m_y(v.m_y), m_z(v.m_z) { }
   Vector(float x, float y, float z) : m_x(x), m_y(y), m_z(z)             { }
   explicit Vector(float f)          : m_x(f), m_y(f), m_z(f)             { }
-    
-    
+  
   float length2() const { return m_x * m_x + m_y * m_y + m_z * m_z; }
   float length()  const { return std::sqrt(length2()); }
     
